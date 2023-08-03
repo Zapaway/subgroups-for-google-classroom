@@ -1,0 +1,10 @@
+@import "../../assets/styles/tailwind.css";
+
+body {
+  width: 300px;
+  height: 260px;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}

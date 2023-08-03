@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+@import "../../assets/styles/tailwind.css";
+
+.wrap-subgroup-name {
+    inline-size: 169px;
+    overflow-wrap: break-word;
+}
+
+.wrap-subgroup-list-placeholder-name {
+    inline-size: 200px;
+    overflow-wrap: break-word;
+}
