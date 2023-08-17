@@ -1,7 +1,7 @@
 {
   "name": "subgroups-for-google-classroom",
   "displayName": "Subgroups for Google Classroom",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Kenneth Chap",
   "description": "Assign certain students access to Google Classroom posts, assignments, and more without having to check them off every time!",
   "scripts": {

@@ -243,7 +243,7 @@ export default function SubgroupsModal() {
 
                         const db = await connectToDb(classroomID);
                         const oldAssignees = await getAssigneeList(db);
-                        const newAssignees = getAllAssigneesFromPeopleTab();
+                        const newAssignees = await getAllAssigneesFromPeopleTab();
                         const newAssigneesIds = new Set(
                           newAssignees.map((a) => a.id)
                         );

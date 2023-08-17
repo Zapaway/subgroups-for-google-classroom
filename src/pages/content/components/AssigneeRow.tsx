@@ -20,14 +20,17 @@ export function AssigneeRow({ assignee, provided }: IAssigneeRowProps) {
       {...provided?.draggableProps}
       className="flex flex-row items-center mt-[7px] p-3 bg-white rounded-lg shadow"
     >
-      <div className="avatar">
-        <div className="w-9 rounded-full mr-[7px]">
+      <div className="avatar mr-[10px]">
+        <div className="w-9 rounded-full">
           <img src={assignee.pfpUrl} />
         </div>
       </div>
       <div>
         <p className="text-lg">
           {assignee.firstName} {assignee.lastName}
+        </p>
+        <p>
+          {assignee.email}
         </p>
       </div>
     </li>

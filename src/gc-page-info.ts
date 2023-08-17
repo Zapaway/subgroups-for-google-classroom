@@ -92,6 +92,6 @@ export function getClassroomName() {
  * @returns `true` if user is a teacher, otherwise `false`.
  */
 export function isUserATeacher() {
-  const gradeAnchor = document.querySelector("#kO001e > div.QRiHXd > div.R2tE8e.QRiHXd.VHRSDf > div > div:nth-child(4) > a");
+  const gradeAnchor = document.querySelector("#yDmH0d > div:nth-child(2) > nav.bCXrPe > div.Idogi > div > div.TeZa2e > div > div:nth-child(4) > a");
   return !!gradeAnchor;
 }
