@@ -1,6 +1,14 @@
 import type { Manifest } from "webextension-polyfill";
 import pkg from "../package.json";
 
+interface IManifestOAuth2 {
+  key: string;
+  oauth2: {
+    client_id: string;
+    scopes: string[];
+  };
+}
+
 const manifest: Manifest.WebExtensionManifest = {
   manifest_version: 3,
   name: pkg.displayName,
@@ -16,7 +24,7 @@ const manifest: Manifest.WebExtensionManifest = {
     "48": "icon-48.png",
     "128": "icon-128.png",
   },
-  permissions: [],
+  permissions: ["downloads"],
   content_scripts: [
     {
       matches: ["https://classroom.google.com/*"],
@@ -25,6 +33,10 @@ const manifest: Manifest.WebExtensionManifest = {
       css: ["contentStyle.css"],
     },
   ],
+  "background": {
+    service_worker: "src/pages/background/index.js",
+    type: "module"
+  },
   web_accessible_resources: [
     {
       resources: [
@@ -32,6 +44,7 @@ const manifest: Manifest.WebExtensionManifest = {
         "step1cropped.webp",
         "step2cropped.webp",
         "step3cropped.webp",
+        "valid-spreadsheet.png"
       ],
       matches: ["https://classroom.google.com/*"],
     },

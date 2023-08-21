@@ -5,14 +5,14 @@ export type GoogleClassroomAssigneeInfo = {
   pfpUrl: string;
   firstName: string;
   lastName: string;
-  email: string;
+
+  // this is undefined initally since it needs to be webscraped or database
+  // also handles outdated versions of idb
+  email?: string;
 };
 
-// for dropdown animation detection
-const DROPDOWN_ANIMATION_CLASSES = ["JPdR6b", "hVNH5c", "qjTEB"] as const;
-
 // for clicking
-const CLICK_TIMEOUT_MS = 3 as const;
+export const DROPDOWN_ANIMATION_DURATION_MS = 500 as const;
 function simulateClickOn(element: HTMLElement) {
   element.dispatchEvent(
     new MouseEvent("mousedown", {
@@ -53,19 +53,17 @@ export function getAllAssigneesFromDropdown() {
 }
 
 /**
- * Get all students from the "people" tab.
- * @returns Information about each assignee.
+ * Helper function to get the HTML for each assignee.
+ * @returns HTML rows with assignee information.
  */
-export async function getAllAssigneesFromPeopleTab() {
-  // !cannot use hooks as it will generate React code in external script
-  // TODO GET BUTTON ELEMENT FROM HERE
+function getAssigneeHTMLRows() {
   const pageInfo = getPageInfo(window.location.href);
 
   // get the table body containing assignees' info
   // NOTE:  Recently visited Google Classroom pages is stored in cache,
   //        so make sure that we pick the right renderer
   const assigneesContainer = document.querySelector(
-    `c-wiz[jsrenderer="R7jH8d"][data-p*="${pageInfo.classroomID}"] > div > div > main > div.pEwOBc.HTxhwc > table > tbody`
+    `c-wiz[jsrenderer="R7jH8d"][data-p*="${pageInfo.classroomId}"] > div > div > main > div.pEwOBc.HTxhwc > table > tbody`
   );
   if (!assigneesContainer)
     throw new Error("Make sure the user is on the 'People' tab!");
@@ -74,6 +72,17 @@ export async function getAllAssigneesFromPeopleTab() {
   const assigneeRows = Array.from(
     assigneesContainer.children
   ) as HTMLTableRowElement[];
+
+  return assigneeRows;
+}
+
+/**
+ * Get all students from the "people" tab EXCEPT email.
+ * @returns Information about each assignee.
+ */
+export function getAllAssigneesWithoutEmailFromPeopleTab() {
+  // !cannot use hooks as it will generate React code in external script
+  const assigneeRows = getAssigneeHTMLRows();
   const assignees: GoogleClassroomAssigneeInfo[] = [];
 
   for (const row of assigneeRows) {
@@ -96,11 +105,45 @@ export async function getAllAssigneesFromPeopleTab() {
     const firstName = fullNameParts.slice(0, -1).join(" ");
     const lastName = fullNameParts.at(-1)!;
 
-    // --- now simulate a click on the options and get the email
+    assignees.push({ id, pfpUrl, firstName, lastName });
+  }
+
+  return assignees;
+}
+
+const FIND_DROPDOWN_TIMEOUT_MS = 10000;
+export const EMAIL_REGEX =
+  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+const DROPDOWN_ERROR = (code: number) =>
+  `Couldn't find email due to updated Google Classroom UI.\nPlease report this bug. Code: DD${code}`;
+const OPTIONS_BUTTON_DOESNT_EXIST = DROPDOWN_ERROR(1);
+const OPTIONS_DROPDOWN_DOESNT_EXIST = DROPDOWN_ERROR(2);
+const OPTIONS_DROPDOWN_EMAIL_DOESNT_EXIST = DROPDOWN_ERROR(3);
+
+export async function updateAssigneesWithEmailFromPeoplesTab(
+  assigneesMap: Map<string, GoogleClassroomAssigneeInfo>
+) {
+  const assigneeRows = getAssigneeHTMLRows();
+  const res: GoogleClassroomAssigneeInfo[] = [];
+
+  // if error, then dropdown doesn't exist and will only last FIND_DROPDOWN_TIMEOUT_MS,
+  // regardless of number of assignees
+  let dropdownStatus: "success" | "error" = "success";
+
+  for (const row of assigneeRows) {
+    const id = row.getAttribute("data-current-student-id")!;
+    const assignee = assigneesMap.get(id);
+    if (!assignee) continue; // skip over assignees we dont need to get email for
+
+    // now simulate a click on the options and get the email
     const optionsButton = row.querySelector(
       "td.Mlpuof.gQZxn.PeKgHf.pOf0gc > div > div"
-    )! as HTMLDivElement;
+    ) as HTMLDivElement | null;
     let email = "";
+    if (!optionsButton) {
+      email = OPTIONS_BUTTON_DOESNT_EXIST;
+      continue;
+    }
 
     // set up an observer so that we can click on the options button and get the email
     const docObsConfig = { childList: true, subtree: true };
@@ -110,49 +153,56 @@ export async function getAllAssigneesFromPeopleTab() {
       );
       if (!optionsDropdown) return;
 
-      email = optionsDropdown.getAttribute("aria-label")!.split(" ")[1];
+      const possibleEmail = optionsDropdown
+        .getAttribute("aria-label")!
+        .split(" ")[1];
+      if (EMAIL_REGEX.test(possibleEmail)) {
+        email = possibleEmail;
+      } else {
+        email = OPTIONS_DROPDOWN_EMAIL_DOESNT_EXIST;
+      }
     });
-    docObserver.observe(document.body, docObsConfig);
 
-    // now click
-    simulateClickOn(optionsButton);
-    await new Promise((r) => setInterval(r, 1000));
+    if (dropdownStatus === "success") {
+      // if cannot find the email in 10 seconds, then google has changed dropdown html code
+      dropdownStatus = await new Promise<"success" | "error">(
+        async (response) => {
+          const timer = setTimeout(() => {
+            return response("error");
+          }, FIND_DROPDOWN_TIMEOUT_MS);
 
-    // wait until we get the email
-    await new Promise<void>((res) => {
-      (function waitUntilEmailRecieved() {
-        if (email !== "") {
-          docObserver.disconnect();
+          docObserver.observe(document.body, docObsConfig);
+
+          // now click
           simulateClickOn(optionsButton);
-          return res();
-        }
-        setTimeout(waitUntilEmailRecieved, CLICK_TIMEOUT_MS);
-      })();
-    });
+          await new Promise((r) => setInterval(r, DROPDOWN_ANIMATION_DURATION_MS));
 
-    assignees.push({ id, pfpUrl, firstName, lastName, email });
+          // wait until we get the email
+          await new Promise<void>((emailRes) => {
+            (function waitUntilEmailRecieved() {
+              if (email !== "") {
+                docObserver.disconnect();
+                simulateClickOn(optionsButton);
+                return emailRes();
+              }
+              setTimeout(waitUntilEmailRecieved, DROPDOWN_ANIMATION_DURATION_MS);
+            })();
+          });
+          
+          clearTimeout(timer);
+          res.push({ ...assignee, email });
+          return response("success");
+        }
+      );
+    }
+
+    if (dropdownStatus === "error") {
+      res.push({
+        ...assignee,
+        email: OPTIONS_DROPDOWN_DOESNT_EXIST,
+      });
+    }
   }
 
-  // /// for testing purposes
-  // const scriptUrl =
-  //   "https://script.google.com/macros/s/AKfycbzZpqPR3xW9EsmsIaQFAiHPncbqO7GJ8YWVRFufclCcwpDwsCb7k-TqxCfrdYBBxVNY/exec";
-  // const assigneesJsonData = assignees.map(({email, id}) => ({email, id}));
-
-  // fetch(scriptUrl, {
-  //   method: "POST",
-  //   mode: "no-cors",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //   },
-  //   body: JSON.stringify(assigneesJsonData),
-  // })
-  //   .then((response) => response.text())
-  //   .then((result) => {
-  //     console.log(result);
-  //   })
-  //   .catch((error) => {
-  //     console.error("Error:", error);
-  //   });
-
-  return assignees;
+  return res;
 }

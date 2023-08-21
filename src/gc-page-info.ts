@@ -63,17 +63,17 @@ export function getPageInfo(url: string): IPageInfo {
   }
 
   // get the classroom ID if user is on individual Google Classrom page
-  let classroomID = "";
+  let classroomId = "";
   if (pageType !== GoogleClassroomState.HOME) {
-    classroomID = url.match(GC_STATE_REGEX_MAP.get(pageType)!)![1];
+    classroomId = url.match(GC_STATE_REGEX_MAP.get(pageType)!)![1];
   }
 
-  return { pageType, classroomID };
+  return { pageType, classroomId };
 }
 
 export interface IPageInfo {
   pageType: GoogleClassroomState;
-  classroomID: string; // NOTE: if pageType is HOME, then this will be empty string
+  classroomId: string; // NOTE: if pageType is HOME, then this will be empty string
 }
 
 /**

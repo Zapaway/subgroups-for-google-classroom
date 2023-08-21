@@ -17,7 +17,7 @@ declare const window: Window &
  * Although this scrollbox is wrapped in a droppable, the assignees cannot be rearranged in here.
  */
 export function AssigneeListScrollbox() {
-  const classroomID = usePageInfoStore((state) => state.classroomID);
+  const classroomID = usePageInfoStore((state) => state.classroomId);
   const [assigneeList, invalidateAssigneeList] = useAssigneeListStore(
     (state) => [state.assigneeList, state.invalidateAssigneeList]
   );
@@ -37,11 +37,13 @@ export function AssigneeListScrollbox() {
         This list contains <b>{assigneeList.length}</b> students.
       </p>
       <p>
-        If you need to refresh the list, press the <b>Refresh List</b> button
-        after going to the <b>People</b> tab and coming back here again.
+        If you need to refresh the list, go to the <b>People</b> tab and come
+        back here. You will be able to click the <b>Refresh List</b> button. It takes 0.5 seconds for every NEW student.
       </p>
 
-      <div className="bg-blue-200 rounded-md p-3 text-base my-3">&#128161; Use Ctrl+F to search for an assignee!</div>
+      <div className="bg-blue-100 border border-blue-300 rounded-md p-3 text-base my-3">
+        🔎 Use Ctrl+F to search for an assignee!
+      </div>
 
       <Droppable
         droppableId="assigneeList"

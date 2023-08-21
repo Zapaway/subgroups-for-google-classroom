@@ -6,24 +6,33 @@ import {
   updateSubgroup,
 } from "../../../../gc-idb";
 import { RefObject, useEffect, useState } from "react";
-import { usePageInfoStore } from "../../../../gc-hooks";
+import {
+  useGoogleClassroomNameStore,
+  usePageInfoStore,
+} from "../../../../gc-hooks";
 import TempAssigneeSubgroup from "./TempAssigneeSubgroup";
 import {
-  GoogleClassroomTempSubgroupInfo,
-  TempSubgroupId,
-  TempSubgroupMap,
   didDbNameChange,
   didTempAssigneesChange,
   useTempSubgroupsStore,
 } from "./stores";
+import { generateTempSubgroupsCSVUrl } from "./export";
+import { type RequestOptions } from "../../../../pages/background";
+
+// allow ID-based reference to modal w/o having to execute a function
+declare const window: Window &
+  typeof globalThis & {
+    import_modal: HTMLDialogElement;
+  };
 
 /**
  * Allows response to certain button clicks outside of this scrollbox.
- * TODO Save should keep the temp subgroups
- * TODO Cancel shoudl remove any temp subgroups
  */
 interface IAssigneeSubgroupScrollboxProps {
   addButtonRef: RefObject<HTMLButtonElement>;
+  importButtonRef: RefObject<HTMLButtonElement>;
+  exportButtonRef: RefObject<HTMLButtonElement>;
+  clearButtonRef: RefObject<HTMLButtonElement>;
   saveButtonRef: RefObject<HTMLButtonElement>;
   cancelButtonRef: RefObject<HTMLButtonElement>;
 }
@@ -36,17 +45,26 @@ interface IAssigneeSubgroupScrollboxProps {
  */
 export default function TempAssigneeSubgroupScrollbox({
   addButtonRef,
+  importButtonRef,
+  exportButtonRef,
+  clearButtonRef,
   saveButtonRef,
   cancelButtonRef,
 }: IAssigneeSubgroupScrollboxProps) {
-  const classroomID = usePageInfoStore((state) => state.classroomID);
-  const [tempSubgroups, loadSubgroups, addTempSubgroup, refreshTempSubgroups] =
-    useTempSubgroupsStore((state) => [
-      state.tempSubgroups,
-      state.loadSubgroups,
-      state.addTempSubgroup,
-      state.refreshTempSubgroups,
-    ]);
+  const classroomID = usePageInfoStore((state) => state.classroomId);
+  const [
+    tempSubgroups,
+    loadSubgroups,
+    addTempSubgroup,
+    refreshTempSubgroups,
+    delAllTempSubgroups,
+  ] = useTempSubgroupsStore((state) => [
+    state.tempSubgroups,
+    state.loadSubgroups,
+    state.addTempSubgroup,
+    state.refreshTempSubgroups,
+    state.delAllTempSubgroups,
+  ]);
 
   // to fix very early loading issues (if user clicks button too early)
   const [doneLoading, setDoneLoading] = useState(false);
@@ -81,12 +99,63 @@ export default function TempAssigneeSubgroupScrollbox({
     }
   }, [addButtonRef]);
 
+  // attach feature to import temp subgroups
+  useEffect(() => {
+    const importBtn = importButtonRef.current;
+    if (importBtn) {
+      importBtn.onclick = (e: MouseEvent) => {
+        e.preventDefault();
+
+        window.import_modal.showModal();
+      };
+    }
+  }, [importButtonRef]);
+
+  // attach feature to export temp subgroups
+  useEffect(() => {
+    const exportButton = exportButtonRef.current;
+    if (exportButton) {
+      exportButton.onclick = async (e: MouseEvent) => {
+        e.preventDefault();
+
+        const currClassroomId = usePageInfoStore.getState().classroomId;
+        const tempSubgroups = Array.from(
+          useTempSubgroupsStore.getState().tempSubgroups.values()
+        );
+        const url = await generateTempSubgroupsCSVUrl(
+          tempSubgroups,
+          currClassroomId
+        );
+
+        const classroomName =
+          useGoogleClassroomNameStore.getState().classroomName;
+
+        await chrome.runtime.sendMessage<RequestOptions>({
+          type: "export",
+          url,
+          classroomName,
+        });
+      };
+    }
+  }, [exportButtonRef]);
+
+  // attach feature to clear all temp subgroups
+  useEffect(() => {
+    const clearBtn = clearButtonRef.current;
+    if (clearBtn) {
+      clearBtn.onclick = (e: MouseEvent) => {
+        e.preventDefault();
+        delAllTempSubgroups();
+      };
+    }
+  }, [clearButtonRef]);
+
   // attach feature to save temp subgroups to db
   useEffect(() => {
     const saveBtn = saveButtonRef.current;
     if (saveBtn) {
       saveBtn.onclick = async (e: MouseEvent) => {
-        const currClassroomId = usePageInfoStore.getState().classroomID;
+        const currClassroomId = usePageInfoStore.getState().classroomId;
         const db = await connectToDb(currClassroomId);
         const oldExistingSubgroupNames = (await getSubgroupList(db)).map(
           (sg) => sg.subgroupName
@@ -175,7 +244,7 @@ export default function TempAssigneeSubgroupScrollbox({
     const cancelBtn = cancelButtonRef.current;
     if (cancelBtn) {
       cancelBtn.onclick = async () => {
-        const currClassroomId = usePageInfoStore.getState().classroomID;
+        const currClassroomId = usePageInfoStore.getState().classroomId;
         const db = await connectToDb(currClassroomId);
         const dbSubgroups = await getSubgroupList(db);
 

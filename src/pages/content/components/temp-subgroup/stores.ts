@@ -1,6 +1,12 @@
 import { StoreApi, UseBoundStore, create } from "zustand";
-import { GoogleClassroomSubgroupInfo } from "../../../../gc-idb";
-import { useSubgroupListStore } from "../../../../gc-hooks";
+import {
+  GoogleClassroomSubgroupInfo,
+  connectToDb,
+  deleteSubgroup,
+  getSubgroupList,
+  updateSubgroup,
+} from "../../../../gc-idb";
+import { usePageInfoStore, useSubgroupListStore } from "../../../../gc-hooks";
 
 type TempSubgroupStore = UseBoundStore<StoreApi<ITempSubgroupStoreState>>;
 export type TempSubgroupId = string;
@@ -73,6 +79,7 @@ interface INewTempSubgroupsStoreState {
   ) => GoogleClassroomTempSubgroupInfo[];
   addTempSubgroup: () => void;
   delTempSubgroup: (tempSubgroupId: string) => void;
+  delAllTempSubgroups: () => void;
 }
 
 /**
@@ -100,7 +107,7 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
       for (const sg of subgroups) {
         const tempId = sg.subgroupName;
         const tempStore = createTempSubgroupStore(sg, sg.subgroupName);
-        
+
         get().tempSubgroups.set(tempId, { ...sg, tempStore, existsInDb: true });
       }
     },
@@ -185,6 +192,9 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
       newTempSubgroups.delete(tempSubgroupId);
 
       set({ tempSubgroups: newTempSubgroups });
+    },
+    delAllTempSubgroups: () => {
+      set({ tempSubgroups: new Map() });
     },
   })
 );

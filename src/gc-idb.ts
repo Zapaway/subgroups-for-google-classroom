@@ -7,7 +7,7 @@
  * particular Google Classroom, they will have access to that same classroom database.
  */
 
-import { DBSchema, IDBPDatabase, openDB } from "idb";
+import { DBSchema, IDBPDatabase, IDBPObjectStore, openDB } from "idb";
 import { GoogleClassroomAssigneeInfo } from "./gc-assignees";
 
 const ASSIGNEES_STORE_NAME = "assigneesStore";
@@ -19,7 +19,7 @@ interface IClassroomDB extends DBSchema {
   assigneesStore: {
     key: string;
     value: GoogleClassroomAssigneeInfo;
-    indexes: { "sort-last-name": string };
+    indexes: { "sort-last-name": string; "sort-email": string };
   };
   subgroupsStore: {
     key: string;
@@ -35,12 +35,15 @@ export type GoogleClassroomSubgroupInfo = {
 };
 
 export async function connectToDb(classroomId: string) {
-  const db = await openDB<IClassroomDB>(classroomId, 1, {
-    upgrade(db, lastOpenedVer, _, __) {
+  const db = await openDB<IClassroomDB>(classroomId, 2, {
+    upgrade(db, lastOpenedVer, _, transaction) {
+      console.log(lastOpenedVer);
+
       switch (lastOpenedVer) {
         case 0:
         // if the user had went on Google Classroom for first time
         // after installing this ext
+        // @ts-ignore
         case 1:
           // create assigneesStore if not exist alr
           if (!db.objectStoreNames.contains(ASSIGNEES_STORE_NAME)) {
@@ -56,9 +59,29 @@ export async function connectToDb(classroomId: string) {
               keyPath: SUBGROUPS_STORE_KEY_PATH,
             });
           }
+        case 2:
+          // add an email index if nonexistent
+          const assigneesStore = transaction.objectStore("assigneesStore");
+
+          if (!assigneesStore.indexNames.contains("sort-email")) {
+            assigneesStore.createIndex("sort-email", "email", {
+              unique: false,
+            });
+          }
       }
     },
   });
+
+  // // for version 2, turn any undefined email to "" for sorting purposes
+  // // NOTE: this does not affect emails containing errors
+  // // NOTE:  attempting to get assignee data with error is impossible,
+  // //        since you can only access it with valid email or ID
+  // const allAssignees = await getAssigneeList(db);
+  // const assigneesWithNullEmail = allAssignees
+  //   .filter((a) => a.email === undefined)
+  //   .map((a) => ({ ...a, email: "" }));
+  // assigneesWithNullEmail.length &&
+  //   (await updateAssigneeList(db, assigneesWithNullEmail));
 
   return db;
 }
@@ -83,6 +106,16 @@ export async function getAssignee(db: DB, id: string) {
   return assignee;
 }
 
+export async function getAssigneeByEmail(db: DB, email: string) {
+  const tx = db.transaction("assigneesStore", "readonly");
+  const emailIndex = tx.objectStore("assigneesStore").index("sort-email");
+
+  const assignee = await emailIndex.get(email);
+  await tx.done;
+
+  return assignee;
+}
+
 export async function getAssigneeList(db: DB) {
   const tx = db.transaction("assigneesStore", "readonly");
   const index = tx.objectStore("assigneesStore").index("sort-last-name");
@@ -100,7 +133,7 @@ export async function deleteAssignee(db: DB, assigneeId: string) {
     ...s,
     assigneeIds: s.assigneeIds.filter((id) => id !== assigneeId),
   }));
-  await Promise.all([...modifiedSubgroups.map(us => updateSubgroup(db, us))]);
+  await Promise.all([...modifiedSubgroups.map((us) => updateSubgroup(db, us))]);
 
   // delete the assignee itself
   const assigneesTx = db.transaction("assigneesStore", "readwrite");
@@ -126,6 +159,14 @@ export async function deleteSubgroup(db: DB, subgroupName: string) {
   const store = tx.objectStore("subgroupsStore");
 
   await store.delete(subgroupName);
+  await tx.done;
+}
+
+export async function clearSubgroups(db: DB) {
+  const tx = db.transaction("subgroupsStore", "readwrite");
+  const store = tx.objectStore("subgroupsStore");
+
+  await store.clear();
   await tx.done;
 }
 

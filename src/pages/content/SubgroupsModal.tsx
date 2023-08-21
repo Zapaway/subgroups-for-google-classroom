@@ -5,9 +5,14 @@ import {
   useUserTypeStore,
 } from "../../gc-hooks";
 import { GoogleClassroomState } from "../../gc-page-info";
-import { getAllAssigneesFromPeopleTab } from "../../gc-assignees";
 import {
-  GoogleClassroomSubgroupInfo,
+  DROPDOWN_ANIMATION_DURATION_MS,
+  EMAIL_REGEX,
+  GoogleClassroomAssigneeInfo,
+  getAllAssigneesWithoutEmailFromPeopleTab,
+  updateAssigneesWithEmailFromPeoplesTab,
+} from "../../gc-assignees";
+import {
   connectToDb,
   deleteAssignee,
   getAssigneeList,
@@ -16,28 +21,30 @@ import {
 import { AssigneeListScrollbox } from "./components/AssigneeListScrollbox";
 import { DragDropContext } from "react-beautiful-dnd";
 import TempAssigneeSubgroupScrollbox from "./components/temp-subgroup/TempAssigneeSubgroupScrollbox";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   TempSubgroupMap,
   useTempSubgroupsStore,
 } from "./components/temp-subgroup/stores";
-// import stepOneImg from "../../assets/img/step1cropped.webp";
-// import stepTwoImg from "../../assets/img/step2cropped.webp";
-// import stepThreeImg from "../../assets/img/step3cropped.webp";
 
 export default function SubgroupsModal() {
   // info
   const [pageType, classroomID] = usePageInfoStore((state) => [
     state.pageType,
-    state.classroomID,
+    state.classroomId,
   ]);
   const classroomName = useGoogleClassroomNameStore(
     (state) => state.classroomName
   );
   const isTeacher = useUserTypeStore((state) => state.isTeacher);
+  const [disabledMessage, setDisabledMessage] = useState<string | null>(null);
+  const manifestData = chrome.runtime.getManifest();
 
   // button refs
   const addTempSubgroupButtonRef = useRef<HTMLButtonElement>(null);
+  const importTempSubgroupButtonRef = useRef<HTMLButtonElement>(null);
+  const exportTempSubgroupsButtonRef = useRef<HTMLButtonElement>(null);
+  const clearTempSubgroupsButtonRef = useRef<HTMLButtonElement>(null);
   const saveTempSubgroupsButtonRef = useRef<HTMLButtonElement>(null);
   const cancelChangesButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -151,7 +158,10 @@ export default function SubgroupsModal() {
         }}
       >
         <form method="dialog" className="modal-box w-11/12 max-w-6xl">
-          <h3 className="font-bold text-xl">Subgroups for {classroomName}</h3>
+          <h3 className="text-lg">
+            <b className="text-xl">Subgroups for {classroomName}</b> v
+            {manifestData.version} by {manifestData.author}
+          </h3>
           {isTeacher ? (
             <>
               {
@@ -182,9 +192,12 @@ export default function SubgroupsModal() {
                   </>
                 ) : (
                   <div>
-                    <p className="text-base mb-3">
-                      This is where you can add, edit, and remove subgroups for{" "}
-                      <b>{classroomName}</b>! Please note that there are some caveats.
+                    <details className="text-base mb-3 bg-yellow-100 border border-yellow-300 p-3 mt-3 rounded-md">
+                      <summary>
+                        ⚠️ This is where you can add, edit, and remove subgroups
+                        for <b>{classroomName}</b>! Please note that there are
+                        some caveats.
+                      </summary>
                       <ul className="list-disc px-5">
                         <li>
                           Does not save across different computers (it is stored
@@ -201,14 +214,25 @@ export default function SubgroupsModal() {
                           days of inactivity
                         </li>
                       </ul>
-                      <i>
-                        If you encounter any bugs, please report it through the
-                        "Support" section in the Chrome Extension store.
-                      </i>
+                    </details>
+                    <p className="mb-3 text-base">
+                      If you encounter any bugs, please report it through the{" "}
+                      <a
+                        className="link"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        href="https://chrome.google.com/webstore/detail/subgroups-for-google-clas/liihdnckdcohbeincekdciebinhmpfab"
+                      >
+                        "Support" section in the Chrome Extension store 🏪
+                      </a>
+                      .
                     </p>
                     <div className="grid grid-cols-2 gap-4 w-full h-96">
                       <TempAssigneeSubgroupScrollbox
                         addButtonRef={addTempSubgroupButtonRef}
+                        importButtonRef={importTempSubgroupButtonRef}
+                        exportButtonRef={exportTempSubgroupsButtonRef}
+                        clearButtonRef={clearTempSubgroupsButtonRef}
                         saveButtonRef={saveTempSubgroupsButtonRef}
                         cancelButtonRef={cancelChangesButtonRef}
                       />
@@ -217,110 +241,229 @@ export default function SubgroupsModal() {
                   </div>
                 )
               }
-              <div className="mt-2 flex justify-between">
+              <div className="mt-2 grid grid-cols-2 gap-4">
                 {
                   // only allow adding subgroups on individual GC pages
                   pageType !== GoogleClassroomState.HOME && (
-                    <button
-                      className="btn btn-xs"
-                      ref={addTempSubgroupButtonRef}
-                      onClick={(e) => {
-                        // this is safe guard in case ref was not set yet
-                        e.preventDefault();
-                      }}
-                    >
-                      &#10133; Add Subgroup
-                    </button>
+                    <div className="flex flex-row justify-between">
+                      <div className="flex flex-col gap-1 md:flex-row md:gap-2">
+                        <div>
+                          <button
+                            className="btn btn-xs"
+                            ref={addTempSubgroupButtonRef}
+                            onClick={(e) => {
+                              // this is safe guard in case ref was not set yet
+                              e.preventDefault();
+                            }}
+                          >
+                            ✏️ Add
+                          </button>
+                        </div>
+                        <button
+                          className="btn btn-xs"
+                          ref={importTempSubgroupButtonRef}
+                          onClick={(e) => {
+                            // this is safe guard in case ref was not set yet
+                            e.preventDefault();
+                          }}
+                        >
+                          📦 Import
+                        </button>
+                        <button
+                          className="btn btn-xs"
+                          ref={exportTempSubgroupsButtonRef}
+                          onClick={async (e) => {
+                            // this is safe guard in case ref was not set yet
+                            e.preventDefault();
+                          }}
+                        >
+                          🚀 Export
+                        </button>
+                      </div>
+                      <div>
+                        <button
+                          className="btn btn-xs"
+                          ref={clearTempSubgroupsButtonRef}
+                          onClick={async (e) => {
+                            // this is safe guard in case ref was not set yet
+                            e.preventDefault();
+                          }}
+                        >
+                          🗑️ Clear
+                        </button>
+                      </div>
+                    </div>
                   )
                 }
                 {
                   // only show refresh list option if user is on "people" tab
                   pageType === GoogleClassroomState.PEOPLE && (
-                    <button
-                      className="btn btn-xs"
-                      onClick={async (e) => {
-                        e.preventDefault();
+                    <div className="flex flex-col justify-start items-end sm:flex-row sm:justify-end sm:items-center gap-2">
+                      {disabledMessage && (
+                        <p className="text-sm italic text-right">
+                          {disabledMessage}
+                        </p>
+                      )}
+                      <div className="flex flex-row gap-2 shrink-0">
+                        {disabledMessage && (
+                          <span className="loading loading-spinner loading-sm shrink-0"></span>
+                        )}
+                        <button
+                          className={`btn btn-xs ${
+                            disabledMessage && "btn-disabled"
+                          }`}
+                          onClick={async (e) => {
+                            e.preventDefault();
 
-                        const db = await connectToDb(classroomID);
-                        const oldAssignees = await getAssigneeList(db);
-                        const newAssignees = await getAllAssigneesFromPeopleTab();
-                        const newAssigneesIds = new Set(
-                          newAssignees.map((a) => a.id)
-                        );
-                        const newAssigneesMap = new Map(
-                          newAssignees.map((a) => [a.id, a])
-                        );
-                        const nameChangeTempSubgroupsMap: TempSubgroupMap =
-                          new Map();
+                            const db = await connectToDb(classroomID);
+                            const oldAssignees = await getAssigneeList(db);
+                            const oldAssigneesMap = new Map(
+                              oldAssignees.map((a) => [a.id, a])
+                            );
+                            const parsedAssignees =
+                              getAllAssigneesWithoutEmailFromPeopleTab();
+                            const parsedAssigneesIds = new Set(
+                              parsedAssignees.map((a) => a.id)
+                            );
+                            const parsedAssigneesMap = new Map(
+                              parsedAssignees.map((a) => [a.id, a])
+                            );
+                            const nameChangeTempSubgroupsMap: TempSubgroupMap =
+                              new Map();
 
-                        // if the new assignee list doesn't contain the db assignee,
-                        // it needs to be deleted
-                        await Promise.all(
-                          oldAssignees.map(
-                            async ({ id, firstName, lastName }) => {
-                              if (!newAssigneesIds.has(id)) {
-                                await deleteAssignee(db, id);
-                                deleteAssgineeFromAllTempSubgroups(id);
-                              } else {
-                                const {
-                                  firstName: newFirstName,
-                                  lastName: newLastName,
-                                } = newAssigneesMap.get(id)!;
-                                // there was a rare name change
-                                if (
-                                  firstName !== newFirstName ||
-                                  lastName !== newLastName
-                                ) {
-                                  // get all of the temp subgroups the user is in
-                                  const activeTempSubgroups =
-                                    useTempSubgroupsStore
-                                      .getState()
-                                      .getAllTempSubgroupsBasedOn(id);
-                                  activeTempSubgroups.forEach((sg) =>
-                                    nameChangeTempSubgroupsMap.set(
-                                      sg.subgroupName,
-                                      sg
-                                    )
-                                  );
+                            // --- OLD ASSIGNEES OR ASSIGNEES WITH OUTDATED NAMES
+                            // if the new assignee list doesn't contain the db assignee,
+                            // it needs to be deleted
+                            await Promise.all(
+                              oldAssignees.map(
+                                async ({ id, firstName, lastName }) => {
+                                  if (!parsedAssigneesIds.has(id)) {
+                                    await deleteAssignee(db, id);
+                                    deleteAssgineeFromAllTempSubgroups(id);
+                                  } else {
+                                    const {
+                                      firstName: newFirstName,
+                                      lastName: newLastName,
+                                    } = parsedAssigneesMap.get(id)!;
+                                    // there was a rare name change
+                                    if (
+                                      firstName !== newFirstName ||
+                                      lastName !== newLastName
+                                    ) {
+                                      // get all of the temp subgroups the user is in
+                                      const activeTempSubgroups =
+                                        useTempSubgroupsStore
+                                          .getState()
+                                          .getAllTempSubgroupsBasedOn(id);
+                                      // and change the name
+                                      activeTempSubgroups.forEach((sg) =>
+                                        nameChangeTempSubgroupsMap.set(
+                                          sg.subgroupName,
+                                          sg
+                                        )
+                                      );
+                                    }
+                                  }
                                 }
+                              )
+                            );
+
+                            const finalAssigneeList: GoogleClassroomAssigneeInfo[] =
+                              [];
+
+                            // --- EXISTING ASSIGNEES
+                            // will need to transfer emails from oldAssignees to newAssignees
+                            // NOTE: existing assignee with invalid email will count as one without email
+                            // NOTE: emails cannot change
+                            const newAssigneesWithoutEmail: Map<
+                              string,
+                              GoogleClassroomAssigneeInfo
+                            > = new Map();
+                            for (const parsedAsgn of parsedAssignees) {
+                              const oldAsgn = oldAssigneesMap.get(
+                                parsedAsgn.id
+                              );
+
+                              if (
+                                oldAsgn &&
+                                EMAIL_REGEX.test(oldAsgn.email ?? "")
+                              ) {
+                                parsedAsgn.email = oldAsgn.email;
+                                finalAssigneeList.push(parsedAsgn);
+                              } else {
+                                newAssigneesWithoutEmail.set(
+                                  parsedAsgn.id,
+                                  parsedAsgn
+                                );
                               }
                             }
-                          )
-                        );
 
-                        // update assignees
-                        await updateAssigneeList(db, newAssignees);
+                            // --- NEW ASSIGNEES OR ASSIGNEES WITH INVALID EMAILS
+                            // will need to fetch emails from webscraping (0.5 seconds per)
+                            const numOfNewAssignees =
+                              newAssigneesWithoutEmail.size;
+                            if (!!numOfNewAssignees) {
+                              const estSeconds =
+                                Math.round(
+                                  ((numOfNewAssignees *
+                                    DROPDOWN_ANIMATION_DURATION_MS) /
+                                    1000) *
+                                    10
+                                ) / 10; // rounded to nearest tenth
+                              setDisabledMessage(
+                                `You have ${numOfNewAssignees} student(s), so it should take about ${estSeconds} seconds.`
+                              );
+                            }
+                            const newAssginees =
+                              await updateAssigneesWithEmailFromPeoplesTab(
+                                newAssigneesWithoutEmail
+                              );
+                            finalAssigneeList.push(...newAssginees);
 
-                        // if there were any name changes, refresh those subgroups
-                        // to get the updated names from DB
-                        Array.from(nameChangeTempSubgroupsMap.values()).forEach(
-                          (tempSg) =>
-                            tempSg.tempStore.setState((state) => ({
-                              ...state,
-                              tempAssigneeIds: [...state.tempAssigneeIds],
-                            }))
-                        );
+                            // update assignees
+                            await updateAssigneeList(db, finalAssigneeList);
 
-                        // force re-render with sorted assignees
-                        const assignees = await getAssigneeList(db);
-                        invalidateAssigneeList(assignees);
-                      }}
-                    >
-                      &#128260; Refresh List
-                    </button>
+                            // if there were any name changes, refresh those subgroups
+                            // to get the updated names from DB
+                            Array.from(
+                              nameChangeTempSubgroupsMap.values()
+                            ).forEach((tempSg) =>
+                              tempSg.tempStore.setState((state) => ({
+                                ...state,
+                                tempAssigneeIds: [...state.tempAssigneeIds],
+                              }))
+                            );
+
+                            // force re-render with sorted assignees
+                            const assignees = await getAssigneeList(db);
+                            invalidateAssigneeList(assignees);
+
+                            setDisabledMessage(null);
+                          }}
+                        >
+                          &#128260; Refresh List
+                        </button>
+                      </div>
+                    </div>
                   )
                 }
               </div>
               <div className="flex justify-end gap-4">
                 {pageType !== GoogleClassroomState.HOME && (
                   <div className="modal-action">
-                    <button className="btn" ref={saveTempSubgroupsButtonRef}>
+                    <button
+                      className={`btn ${disabledMessage && "btn-disabled"} btn-neutral`}
+                      ref={saveTempSubgroupsButtonRef}
+                    >
                       Save
                     </button>
                   </div>
                 )}
                 <div className="modal-action">
-                  <button className="btn" ref={cancelChangesButtonRef}>
+                  <button
+                    className={`btn ${disabledMessage && "btn-disabled"}`}
+                    ref={cancelChangesButtonRef}
+                  >
                     Cancel
                   </button>
                 </div>
@@ -329,7 +472,8 @@ export default function SubgroupsModal() {
           ) : (
             <>
               <p className="text-base mb-3">
-                ACCESS DENIED! You must be a teacher to modify <b>{classroomName}</b> subgroups.
+                ACCESS DENIED! You must be a teacher to modify{" "}
+                <b>{classroomName}</b> subgroups.
               </p>
               <div className="modal-action">
                 <button className="btn">Cancel</button>

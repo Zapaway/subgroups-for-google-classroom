@@ -9,7 +9,7 @@ interface IPageInfoStoreState extends IPageInfo {
 
 export const usePageInfoStore = create<IPageInfoStoreState>((set) => ({
   pageType: GoogleClassroomState.HOME,
-  classroomID: "",
+  classroomId: "",
   isTeacher: false,
   checkPageType: (url) => set({ ...getPageInfo(url) }),
 }));

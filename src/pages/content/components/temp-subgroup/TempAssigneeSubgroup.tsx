@@ -12,6 +12,8 @@ declare const window: Window &
     subgroups_modal: HTMLDialogElement;
   };
 
+export const SUBGROUP_NAME_REGEX = /^[\w\-\_\s]+$/;  // can only contain alphanumeric, whitespace, -, and _ characters
+
 interface ITempAssigneeSubgroupProps {
   tempSubgroupId: string;
 }
@@ -58,7 +60,7 @@ export default function TempAssigneeSubgroup({
 
   // external store/state
   const selfDelete = useTempSubgroupsStore((state) => state.delTempSubgroup);
-  const classroomId = usePageInfoStore((state) => state.classroomID);
+  const classroomId = usePageInfoStore((state) => state.classroomId);
 
   // accept/cancel changes to subgroup name
   const acceptNameChange = () => {
@@ -69,6 +71,13 @@ export default function TempAssigneeSubgroup({
     // make sure name is not taken and not empty
     if (!newTempName || newTempName === "") {
       setErrorMessage("Please provide a subgroup name.");
+      subgroupNameTextInputRef.current?.focus();
+      return;
+    }
+
+    // make sure it contains valid chars
+    if (!SUBGROUP_NAME_REGEX.test(newTempName)) {
+      setErrorMessage("Subgroup names can only contain alphabets, numbers, spaces, dashes, and underscores.");
       subgroupNameTextInputRef.current?.focus();
       return;
     }
@@ -181,22 +190,25 @@ export default function TempAssigneeSubgroup({
             // if editing, show textbox
             // if not, then show the current subgroup name
             isEditingSubgroupName ? (
-              <input
-                type="text"
-                defaultValue={tempSubgroupName}
-                className="input input-sm w-3/4 max-w-xs"
-                ref={subgroupNameTextInputRef}
-                autoFocus
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  acceptNameChange();
-                }}
-              />
+              <div className="flex flex-row gap-2 w-full">
+                <p>{isExpanded ? "⬇️" : "➡️"}</p>
+                <input
+                  type="text"
+                  defaultValue={tempSubgroupName}
+                  className="input input-sm w-full max-w-xs"
+                  ref={subgroupNameTextInputRef}
+                  autoFocus
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    acceptNameChange();
+                  }}
+                />
+              </div>
             ) : (
-              `${isExpanded ? "⮟" : "⮞"} ${tempSubgroupName}`
+              `${isExpanded ? "⬇️" : "➡️"} ${tempSubgroupName}`
             )
           }
-          <div className="flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-1">
             {isEditingSubgroupName ? (
               // display accept or decline icons
               <>

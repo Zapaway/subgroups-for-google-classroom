@@ -61,7 +61,7 @@ export default function SubgroupCheckbox({
   // turn assignee ids into assignees
   useEffect(() => {
     (async () => {
-      const classroomId = usePageInfoStore.getState().classroomID;
+      const classroomId = usePageInfoStore.getState().classroomId;
       const db = await connectToDb(classroomId);
 
       const existingAssigneeIds: string[] = []; // assignees that show up on dropdown

@@ -8,6 +8,7 @@ import { usePageInfoStore, useUserTypeStore } from "../../gc-hooks";
 import { GoogleClassroomState, isUserATeacher } from "../../gc-page-info";
 import SubgroupsDropdown from "./SubgroupsDropdown";
 import DonateButton from "./DonateButton";
+import ImportTempSubgroupsModal from "./components/temp-subgroup/ImportTempSubgroupsModal";
 
 /// --- SUBGROUPS BUTTON --- ///
 // prepend React div to the right side of the navbar
@@ -28,15 +29,20 @@ nrRoot.render(
   </div>
 );
 
-/// --- SUBGROUPS MODAL --- ///
+/// --- MODALS --- ///
 // add React div to the root
 const rootDiv = document.createElement("div");
 rootDiv.id = "__react-root";
 document.body.append(rootDiv);
 
-// render the Subgroups modal on the root
+// render the modals on the root
 const root = createRoot(rootDiv);
-root.render(<SubgroupsModal />);
+root.render(
+  <div>
+    <SubgroupsModal />
+    <ImportTempSubgroupsModal />
+  </div>
+);
 
 /// --- UPDATING PAGE TYPE CONSTANTLY --- ///
 let prevHref = "";
@@ -192,7 +198,7 @@ const docObserver = new MutationObserver((muts, observer) => {
   }
 
   const currPageType = getState().pageType;
-  const currClassroomId = getState().classroomID;
+  const currClassroomId = getState().classroomId;
 
   // see if the user is a teacher
   if (currPageType === GoogleClassroomState.HOME) {
