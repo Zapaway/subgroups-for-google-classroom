@@ -246,7 +246,7 @@ export default function SubgroupsModal() {
               <div className="mt-2 grid grid-cols-2 gap-4">
                 {
                   // only allow adding subgroups on individual GC pages
-                  pageType !== GoogleClassroomState.HOME && isDoneInitLoading && (
+                  pageType !== GoogleClassroomState.HOME && (
                     <div className="flex flex-row justify-between">
                       <div className="flex flex-col gap-1 md:flex-row md:gap-2">
                         <div>
