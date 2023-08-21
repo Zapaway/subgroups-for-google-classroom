@@ -62,6 +62,7 @@ export function didTempAssigneesChange({
 
 interface INewTempSubgroupsStoreState {
   tempSubgroups: TempSubgroupMap;
+  doneInitLoading: boolean;
 
   /**
    * Load in subgroups from the database.
@@ -71,6 +72,7 @@ interface INewTempSubgroupsStoreState {
    */
   loadSubgroups: (subgroups: GoogleClassroomSubgroupInfo[]) => void;
 
+  setDoneInitLoading: (doneInitLoading: boolean) => void;
   refreshTempSubgroups: () => void;
   deleteAssgineeFromAllTempSubgroups: (assigneeId: string) => void;
   getTempSubgroup: (tempSubgroupId: string) => GoogleClassroomTempSubgroupInfo;
@@ -95,6 +97,8 @@ interface INewTempSubgroupsStoreState {
 export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
   (set, get) => ({
     tempSubgroups: new Map(),
+    doneInitLoading: false,
+
     loadSubgroups: (subgroups) => {
       const oldSubgroupIds = Array.from(get().tempSubgroups.keys());
       oldSubgroupIds.map((id) => get().delTempSubgroup(id));
@@ -111,6 +115,7 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
         get().tempSubgroups.set(tempId, { ...sg, tempStore, existsInDb: true });
       }
     },
+    setDoneInitLoading: (doneInitLoading) => set({ doneInitLoading }),
     refreshTempSubgroups: () => {
       set({ tempSubgroups: new Map(get().tempSubgroups) });
     },

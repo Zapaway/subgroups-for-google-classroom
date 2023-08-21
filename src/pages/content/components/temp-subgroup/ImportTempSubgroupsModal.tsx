@@ -381,9 +381,10 @@ export default function ImportTempSubgroupsModal() {
                       head.trim() !== "" && (
                         <option
                           key={i}
+                          value={head}
                           selected={head === selectedIdentifierHeader}
                         >
-                          {head}
+                          {head} [Col {i+1}]
                         </option>
                       )
                   )}
@@ -407,9 +408,10 @@ export default function ImportTempSubgroupsModal() {
                       head.trim() !== "" && (
                         <option
                           key={i}
+                          value={head}
                           selected={head === selectedSubgroupsHeader}
                         >
-                          {head}
+                          {head} [Col {i+1}]
                         </option>
                       )
                     );
@@ -514,7 +516,7 @@ export default function ImportTempSubgroupsModal() {
             <p className="text-base font-bold bg-orange-100 border border-orange-300 p-3 rounded-md ">
               ⚠️ Once you confirm, these imported subgroups will be SAVED into
               the database, WIPING out any subgroups you had before. If you want
-              to keep a copy of your old subgroups, please exit this import
+              to keep a copy of your old subgroups, please close this import
               window now and export.
             </p>
             <div className="p-2 mb-2 rounded-full flex flex-row justify-evenly bg-gradient-to-r from-blue-300 to-green-300">
@@ -558,7 +560,7 @@ export default function ImportTempSubgroupsModal() {
                   currState.refreshTempSubgroups();
                 }}
               >
-                Confirm ✅
+                Save & Confirm ✅
               </button>
             </div>
             <div className="flex flex-col gap-3">
@@ -580,7 +582,7 @@ export default function ImportTempSubgroupsModal() {
         <div>
           <div className="py-5">
             <div
-              className={`${step > 1 && "tooltip"} w-full tooltip-bottom`}
+              className={`${step > 1 && "tooltip"} w-full tooltip-warning tooltip-bottom`}
               data-tip="Uploading a new spreadsheet may reset any progress."
             >
               <input

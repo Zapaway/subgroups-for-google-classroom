@@ -7,7 +7,8 @@ export type RequestOptions =
       classroomName: string;
     }
   | {
-      type: "import";
+      type: "open";
+      url: string;
     };
 
 chrome.runtime.onMessage.addListener(function (
@@ -16,9 +17,16 @@ chrome.runtime.onMessage.addListener(function (
   sendResponse
 ) {
   if (request.type === "export") {
-    chrome.downloads.download({ url: request.url, filename: `${[slug(request.classroomName), "subgroups.csv"].join("-")}` }, (downloadId) => {
+    chrome.downloads.download(
+      {
+        url: request.url,
+        filename: `${[slug(request.classroomName), "subgroups.csv"].join("-")}`,
+      },
+      (downloadId) => {
         sendResponse(downloadId);
-    });
-  } else if (request.type === "import") {
+      }
+    );
+  } else if (request.type === "open") {
+    chrome.tabs.create({ url: request.url });
   }
 });

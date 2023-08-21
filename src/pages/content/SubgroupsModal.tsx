@@ -52,9 +52,11 @@ export default function SubgroupsModal() {
   const invalidateAssigneeList = useAssigneeListStore(
     (state) => state.invalidateAssigneeList
   );
-  const deleteAssgineeFromAllTempSubgroups = useTempSubgroupsStore(
-    (state) => state.deleteAssgineeFromAllTempSubgroups
-  );
+  const [deleteAssgineeFromAllTempSubgroups, isDoneInitLoading] =
+    useTempSubgroupsStore((state) => [
+      state.deleteAssgineeFromAllTempSubgroups,
+      state.doneInitLoading,
+    ]);
 
   // image urls for home page
   type StepImageData = { url: string; instructions: string };
@@ -244,7 +246,7 @@ export default function SubgroupsModal() {
               <div className="mt-2 grid grid-cols-2 gap-4">
                 {
                   // only allow adding subgroups on individual GC pages
-                  pageType !== GoogleClassroomState.HOME && (
+                  pageType !== GoogleClassroomState.HOME && isDoneInitLoading && (
                     <div className="flex flex-row justify-between">
                       <div className="flex flex-col gap-1 md:flex-row md:gap-2">
                         <div>
@@ -259,26 +261,36 @@ export default function SubgroupsModal() {
                             ✏️ Add
                           </button>
                         </div>
-                        <button
-                          className="btn btn-xs"
-                          ref={importTempSubgroupButtonRef}
-                          onClick={(e) => {
-                            // this is safe guard in case ref was not set yet
-                            e.preventDefault();
-                          }}
+                        <div
+                          className="tooltip tooltip-bottom"
+                          data-tip="Learn about how to import here!"
                         >
-                          📦 Import
-                        </button>
-                        <button
-                          className="btn btn-xs"
-                          ref={exportTempSubgroupsButtonRef}
-                          onClick={async (e) => {
-                            // this is safe guard in case ref was not set yet
-                            e.preventDefault();
-                          }}
+                          <button
+                            className="btn btn-xs"
+                            ref={importTempSubgroupButtonRef}
+                            onClick={(e) => {
+                              // this is safe guard in case ref was not set yet
+                              e.preventDefault();
+                            }}
+                          >
+                            📦 Import
+                          </button>
+                        </div>
+                        <div
+                          className="tooltip tooltip-bottom"
+                          data-tip="Transferring or backing up your subgroups? Download your spreadsheet here."
                         >
-                          🚀 Export
-                        </button>
+                          <button
+                            className="btn btn-xs"
+                            ref={exportTempSubgroupsButtonRef}
+                            onClick={async (e) => {
+                              // this is safe guard in case ref was not set yet
+                              e.preventDefault();
+                            }}
+                          >
+                            🚀 Export
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <button
@@ -452,7 +464,9 @@ export default function SubgroupsModal() {
                 {pageType !== GoogleClassroomState.HOME && (
                   <div className="modal-action">
                     <button
-                      className={`btn ${disabledMessage && "btn-disabled"} btn-neutral`}
+                      className={`btn ${
+                        disabledMessage && "btn-disabled"
+                      } btn-neutral`}
                       ref={saveTempSubgroupsButtonRef}
                     >
                       Save

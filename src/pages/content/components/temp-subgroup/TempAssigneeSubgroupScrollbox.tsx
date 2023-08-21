@@ -54,37 +54,39 @@ export default function TempAssigneeSubgroupScrollbox({
   const classroomID = usePageInfoStore((state) => state.classroomId);
   const [
     tempSubgroups,
+    doneInitLoading,
     loadSubgroups,
+    setDoneInitLoading,
     addTempSubgroup,
     refreshTempSubgroups,
     delAllTempSubgroups,
   ] = useTempSubgroupsStore((state) => [
     state.tempSubgroups,
+    state.doneInitLoading,
     state.loadSubgroups,
+    state.setDoneInitLoading,
     state.addTempSubgroup,
     state.refreshTempSubgroups,
     state.delAllTempSubgroups,
   ]);
 
   // to fix very early loading issues (if user clicks button too early)
-  const [doneLoading, setDoneLoading] = useState(false);
-
   useEffect(() => {
-    if (doneLoading) {
+    if (doneInitLoading) {
       refreshTempSubgroups();
     }
-  }, [doneLoading]);
+  }, [doneInitLoading]);
 
   // populate the subgroup list from db initally
   useEffect(() => {
     (async () => {
-      setDoneLoading(false);
+      setDoneInitLoading(false);
 
       const db = await connectToDb(classroomID);
       const dbSubgroups = await getSubgroupList(db);
       loadSubgroups(dbSubgroups);
 
-      setDoneLoading(true);
+      setDoneInitLoading(true);
     })();
   }, [classroomID]); // if we change classrooms, then we need to re-run this again
 
@@ -249,14 +251,14 @@ export default function TempAssigneeSubgroupScrollbox({
         const dbSubgroups = await getSubgroupList(db);
 
         loadSubgroups(dbSubgroups);
-        setDoneLoading(true);
+        setDoneInitLoading(true);
       };
     }
   }, [cancelButtonRef]);
 
   return (
     <div className="overflow-y-scroll p-5 bg-slate-200">
-      {doneLoading ? (
+      {doneInitLoading ? (
         !!tempSubgroups.size ? (
           Array.from(tempSubgroups.keys()).map((tempSubgroupId) => {
             return (
