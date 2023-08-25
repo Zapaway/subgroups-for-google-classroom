@@ -37,8 +37,6 @@ export type GoogleClassroomSubgroupInfo = {
 export async function connectToDb(classroomId: string) {
   const db = await openDB<IClassroomDB>(classroomId, 2, {
     upgrade(db, lastOpenedVer, _, transaction) {
-      console.log(lastOpenedVer);
-
       switch (lastOpenedVer) {
         case 0:
         // if the user had went on Google Classroom for first time

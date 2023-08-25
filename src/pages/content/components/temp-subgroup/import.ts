@@ -126,7 +126,6 @@ export function verifyIdentifierAndSubgroupsColumnDataFormat(
     const isIdentifierValid =
       EMAIL_REGEX.test(possibleIdentifier) ||
       GC_ID_REGEX.test(possibleIdentifier);
-    console.log(isIdentifierValid, `"${possibleIdentifier}"`);
     if (!isIdentifierValid) {
       invalidIdentifiers.push(possibleIdentifier !== "" ? possibleIdentifier : "(empty)");
     }

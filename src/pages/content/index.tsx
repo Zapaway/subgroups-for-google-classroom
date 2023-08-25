@@ -139,8 +139,6 @@ const assigneeDropdownCheckboxObserver = new MutationObserver(
           subgroupDropdownDiv.id = "__react-subgroups-in-assignee-dropdown";
           hydratedState.prepend(subgroupDropdownDiv);
 
-          console.log("map", assigneeSpansMap);
-
           // render the subgroup checkboxes in the assignee dropdown
           const subgroupDropdownRoot = createRoot(subgroupDropdownDiv);
           subgroupDropdownRoot.render(

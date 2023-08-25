@@ -16,9 +16,7 @@ import {
   getAssigneeByEmail,
   updateSubgroup,
 } from "../../../../gc-idb";
-import {
-  usePageInfoStore,
-} from "../../../../gc-hooks";
+import { usePageInfoStore } from "../../../../gc-hooks";
 import {
   EMAIL_REGEX,
   GoogleClassroomAssigneeInfo,
@@ -276,8 +274,11 @@ export default function ImportTempSubgroupsModal() {
                   </li>
                   <li>
                     {" "}
-                    If there are duplicate emails/IDs, then the one closest to
-                    the bottom of the spreadsheet will be used.
+                    If there are duplicate emails/IDs, then all previous
+                    subgroups will be combined. If you want it to only detect
+                    the most recent entry, manually delete the student's old
+                    entries or, if using online forms, allow them to edit their
+                    responses.
                   </li>
                 </ul>
                 <p className="font-bold">
@@ -384,7 +385,7 @@ export default function ImportTempSubgroupsModal() {
                           value={head}
                           selected={head === selectedIdentifierHeader}
                         >
-                          {head} [Col {i+1}]
+                          {head} [Col {i + 1}]
                         </option>
                       )
                   )}
@@ -411,7 +412,7 @@ export default function ImportTempSubgroupsModal() {
                           value={head}
                           selected={head === selectedSubgroupsHeader}
                         >
-                          {head} [Col {i+1}]
+                          {head} [Col {i + 1}]
                         </option>
                       )
                     );
@@ -582,7 +583,9 @@ export default function ImportTempSubgroupsModal() {
         <div>
           <div className="py-5">
             <div
-              className={`${step > 1 && "tooltip"} w-full tooltip-warning tooltip-bottom`}
+              className={`${
+                step > 1 && "tooltip"
+              } w-full tooltip-warning tooltip-bottom`}
               data-tip="Uploading a new spreadsheet may reset any progress."
             >
               <input
