@@ -6,6 +6,7 @@ import {
 import type { DraggableProvided } from "react-beautiful-dnd";
 import { useMultiDragAssigneesStore } from "./_stores";
 import { useAssigneeListStore } from "../../../gc-hooks";
+import { useTempSubgroupsStore } from "./temp/_stores";
 
 type AssigneeRowProps = {
   assignee: GoogleClassroomAssigneeInfo;
@@ -50,13 +51,23 @@ export function AssigneeRow({
   const prevCheckboxRef = useRef<HTMLElement | null>(null);
   const nextCheckboxRef = useRef<HTMLElement | null>(null);
 
+  // used for keyboard switching between checkboxes
   useEffect(() => {
-    const { assigneeList } = useAssigneeListStore.getState();
-    const maxIndex = assigneeList.length - 1;
+    let maxIndex: number;
+
+    if (droppableId === "assigneeList") {
+      const { assigneeList } = useAssigneeListStore.getState();
+      maxIndex = assigneeList.length - 1;
+    }
+    else {
+      const { tempStore } = useTempSubgroupsStore.getState().getTempSubgroup(droppableId);
+      const { tempAssigneeIds } = tempStore.getState()
+      maxIndex = tempAssigneeIds.length - 1;
+    }
 
     const prevIndex = index - 1;
     const prevCheckbox = document.getElementById(
-      `checkbox-assigneeList-${prevIndex < 0 ? maxIndex : prevIndex}`
+      `checkbox-${droppableId}-${prevIndex < 0 ? maxIndex : prevIndex}`
     );
     if (prevCheckbox) {
       prevCheckboxRef.current = prevCheckbox;
@@ -64,7 +75,7 @@ export function AssigneeRow({
 
     const nextIndex = index + 1;
     const nextCheckbox = document.getElementById(
-      `checkbox-assigneeList-${nextIndex > maxIndex ? 0 : nextIndex}`
+      `checkbox-${droppableId}-${nextIndex > maxIndex ? 0 : nextIndex}`
     );
     if (nextCheckbox) {
       nextCheckboxRef.current = nextCheckbox;
@@ -139,7 +150,7 @@ export function AssigneeRow({
       </div>
       <input
         type="checkbox"
-        id={`checkbox-assigneeList-${index}`}
+        id={`checkbox-${droppableId}-${index}`}
         className="checkbox mr-2"
         disabled={currentlyRefreshing}
         checked={!currentlyRefreshing ? (isSelected ?? toggled) : false}
