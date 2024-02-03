@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   EMAIL_REGEX,
   type GoogleClassroomAssigneeInfo,
 } from "../../../gc-assignees";
 import type { DraggableProvided } from "react-beautiful-dnd";
 import { useMultiDragAssigneesStore } from "./_stores";
+import { useAssigneeListStore } from "../../../gc-hooks";
 
 type AssigneeRowProps = {
   assignee: GoogleClassroomAssigneeInfo;
@@ -46,6 +47,30 @@ export function AssigneeRow({
   const isSelected =
     droppableId === currDroppableId && selectedAssignees.has(index); // instead, use this to cover cases such as "What if the user clicks outside?"
 
+  const prevCheckboxRef = useRef<HTMLElement | null>(null);
+  const nextCheckboxRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const { assigneeList } = useAssigneeListStore.getState();
+    const maxIndex = assigneeList.length - 1;
+
+    const prevIndex = index - 1;
+    const prevCheckbox = document.getElementById(
+      `checkbox-assigneeList-${prevIndex < 0 ? maxIndex : prevIndex}`
+    );
+    if (prevCheckbox) {
+      prevCheckboxRef.current = prevCheckbox;
+    }
+
+    const nextIndex = index + 1;
+    const nextCheckbox = document.getElementById(
+      `checkbox-assigneeList-${nextIndex > maxIndex ? 0 : nextIndex}`
+    );
+    if (nextCheckbox) {
+      nextCheckboxRef.current = nextCheckbox;
+    }
+  }, []); // use this so that we can continuously make sure we have ref to neighboring checkboxes
+
   useEffect(() => {
     if (!provided) return;
     if (isSelected === toggled) return; // prevent infinite loop
@@ -68,7 +93,6 @@ export function AssigneeRow({
 
   return (
     <li
-      id={`checkbox-assigneeList-${index}`}
       ref={provided?.innerRef}
       {...provided?.dragHandleProps}
       {...provided?.draggableProps}
@@ -94,7 +118,7 @@ export function AssigneeRow({
                 <summary>What is the error and what does it mean?</summary>
                 <div>
                   <p>
-                    Error Code:{" "} 
+                    Error Code:{" "}
                     {assignee.email && assignee.email.trim() !== ""
                       ? assignee.email
                       : "An unknown bug occured. Please contact support if it persists after refreshing."}
@@ -115,31 +139,30 @@ export function AssigneeRow({
       </div>
       <input
         type="checkbox"
+        id={`checkbox-assigneeList-${index}`}
         className="checkbox mr-2"
         disabled={currentlyRefreshing}
-        checked={!currentlyRefreshing ? isSelected ?? toggled : false}
+        checked={!currentlyRefreshing ? (isSelected ?? toggled) : false}
         onClick={(e) => {
           if (e.button !== 0) return;
           setToggled(!toggled);
         }}
         onKeyDown={(e) => {
+          e.preventDefault();
+
           switch (e.key) {
             case "Enter":
-              e.preventDefault();
               setToggled(!toggled);
               break;
-            case "ArrowDown":
             case "ArrowUp":
-              e.preventDefault();
-
-              const newIndex = e.key === "ArrowDown" ? index - 1 : index + 1;
-              const nextCheckboxRef = document.getElementById(
-                `checkbox-assigneeList-${newIndex}`
-              ) as HTMLInputElement | null;
-              if (nextCheckboxRef) {
-                nextCheckboxRef.focus();
-              } else {
-              }
+              // currCheckboxRef.current?.blur();
+              console.log(prevCheckboxRef.current);
+              prevCheckboxRef.current?.focus();
+              break;
+            case "ArrowDown":
+              // currCheckboxRef.current?.blur();
+              console.log(nextCheckboxRef.current);
+              nextCheckboxRef.current?.focus();
               break;
           }
         }}
