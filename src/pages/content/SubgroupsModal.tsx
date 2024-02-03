@@ -58,6 +58,7 @@ export default function SubgroupsModal() {
       state.deleteAssigneeFromAllTempSubgroups,
       state.doneInitLoading,
     ]);
+  const disableMultiDrag = useMultiDragAssigneesStore(state => state.disableMultiDragWhileRefreshing);
 
   // image urls for home page
   type StepImageData = { url: string; instructions: string };
@@ -127,8 +128,6 @@ export default function SubgroupsModal() {
             errorMessage: null,
             tempAssigneeIds: [...destSubgroupAssigneeIds],
           });
-
-          console.log(destSubgroupStore.getState().tempAssigneeIds);
 
           return true;
         };
@@ -362,6 +361,8 @@ export default function SubgroupsModal() {
                             const nameChangeTempSubgroupsMap: TempSubgroupMap =
                               new Map();
 
+                            const enableMultiDrag = disableMultiDrag();
+
                             // --- OLD ASSIGNEES OR ASSIGNEES WITH OUTDATED NAMES
                             // if the new assignee list doesn't contain the db assignee,
                             // it needs to be deleted
@@ -445,6 +446,7 @@ export default function SubgroupsModal() {
                                 `You have ${numOfNewAssignees} new student(s), so it should take about ${estSeconds} seconds.`
                               );
                             }
+                            
                             const newAssginees =
                               await updateAssigneesWithEmailFromPeoplesTab(
                                 newAssigneesWithoutEmail
@@ -469,6 +471,7 @@ export default function SubgroupsModal() {
                             const assignees = await getAssigneeList(db);
                             invalidateAssigneeList(assignees);
 
+                            enableMultiDrag();
                             setDisabledMessage(null);
                           }}
                         >

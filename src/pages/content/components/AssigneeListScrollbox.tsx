@@ -4,6 +4,7 @@ import { connectToDb, getAssigneeList } from "../../../gc-idb";
 import { useEffect } from "react";
 import { AssigneeRow } from "./AssigneeRow";
 import { Draggable, Droppable } from "react-beautiful-dnd";
+import { useMultiDragAssigneesStore } from "./_stores";
 
 // allow ID-based reference to modal w/o having to execute a function
 declare const window: Window &
@@ -21,6 +22,7 @@ export function AssigneeListScrollbox() {
   const [assigneeList, invalidateAssigneeList] = useAssigneeListStore(
     (state) => [state.assigneeList, state.invalidateAssigneeList]
   );
+  const currentlyRefreshing = useMultiDragAssigneesStore(state => state.currentlyRefreshing);
 
   // populate the assignee list initally
   useEffect(() => {
@@ -48,6 +50,7 @@ export function AssigneeListScrollbox() {
       <Droppable
         droppableId="assigneeList"
         getContainerForClone={() => window.subgroups_modal}
+        isDropDisabled={currentlyRefreshing}
         renderClone={(provided, snapshot, rubric) => (
           <div
             {...provided.draggableProps}

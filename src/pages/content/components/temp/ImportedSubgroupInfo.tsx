@@ -18,7 +18,7 @@ export default function ImportedSubgroupInfo({
         {!!assigneeFoundInfo.length && (
           <ul className="bg-green-100 border border-green-300 p-3 rounded-md text-base flex flex-col gap-1 overflow-x-auto">
             <li className="italic">
-              <b>{assigneeFoundInfo.length}</b> students were found.
+              <b>{assigneeFoundInfo.length}</b> students were found. 
             </li>
             {assigneeFoundInfo.map((a) => (
               <li key={a.id}>

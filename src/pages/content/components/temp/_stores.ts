@@ -102,10 +102,7 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
 
       for (const sg of subgroups) {
         const tempId = sg.subgroupName;
-        console.log(`orignial ${tempId}`, sg.assigneeIds);
         const tempStore = createTempSubgroupStore(sg, sg.subgroupName);
-
-        console.log(tempId, tempStore.getState().tempAssigneeIds);
 
         get().tempSubgroups.set(tempId, { ...sg, tempStore, existsInDb: true });
       }

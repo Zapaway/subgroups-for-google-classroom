@@ -5,6 +5,7 @@ import { useTempSubgroupsStore } from "./_stores";
 import { connectToDb, getAssignee } from "../../../../gc-idb";
 import { Draggable, Droppable } from "react-beautiful-dnd";
 import { AssigneeRow } from "../AssigneeRow";
+import { useMultiDragAssigneesStore } from "../_stores";
 
 // allow ID-based reference to modal w/o having to execute a function
 declare const window: Window &
@@ -57,6 +58,7 @@ export default function TempAssigneeSubgroup({
   const [assignees, setAssignees] = useState<GoogleClassroomAssigneeInfo[]>([]);
   const dropdownRef = useRef<HTMLDetailsElement>(null);
   const subgroupNameTextInputRef = useRef<HTMLInputElement>(null);
+  const currentlyRefreshing = useMultiDragAssigneesStore(state => state.currentlyRefreshing);
 
   // external store/state
   const selfDelete = useTempSubgroupsStore((state) => state.delTempSubgroup);
@@ -298,7 +300,7 @@ export default function TempAssigneeSubgroup({
       </summary>
       <Droppable
         droppableId={tempSubgroupId}
-        isDropDisabled={!isExpanded}
+        isDropDisabled={!isExpanded || currentlyRefreshing}
         getContainerForClone={() => window.subgroups_modal}
         renderClone={(provided, snapshot, rubric) => (
           <div

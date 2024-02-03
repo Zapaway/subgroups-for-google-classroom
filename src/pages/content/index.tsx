@@ -10,6 +10,11 @@ import SubgroupsDropdown from "./SubgroupsDropdown";
 import DonateButton from "./DonateButton";
 import ImportTempSubgroupsModal from "./components/temp/ImportTempSubgroupsModal";
 
+/** 
+ * !!! CURRENT ISSUES
+ */
+
+
 /// --- SUBGROUPS BUTTON --- ///
 // prepend React div to the right side of the navbar
 const navbarRight = document.querySelector(

@@ -6,12 +6,12 @@ import {
 import type { DraggableProvided } from "react-beautiful-dnd";
 import { useMultiDragAssigneesStore } from "./_stores";
 
-interface IAssigneeRowProps {
+type AssigneeRowProps = {
   assignee: GoogleClassroomAssigneeInfo;
   index: number;
   droppableId: string;
   provided?: DraggableProvided;
-}
+};
 
 /**
  * Displays all information about an assignee. This is not draggable by itself,
@@ -24,24 +24,27 @@ export function AssigneeRow({
   index,
   droppableId,
   provided,
-}: IAssigneeRowProps) {
+}: AssigneeRowProps) {
   const isValidEmail = EMAIL_REGEX.test(assignee.email ?? "");
 
   // this is used to execute add or delete, however it should not be used to style
   const [toggled, setToggled] = useState(false);
 
-  const [selectedAssignees, currDroppableId, addAssignee, deleteAssignee] =
-    useMultiDragAssigneesStore((state) => [
-      state.selectedAssigneesIds,
-      state.currDroppableId,
-      state.addAssignee,
-      state.deleteAssignee,
-    ]);
+  const [
+    selectedAssignees,
+    currDroppableId,
+    currentlyRefreshing,
+    addAssignee,
+    deleteAssignee,
+  ] = useMultiDragAssigneesStore((state) => [
+    state.selectedAssigneesIds,
+    state.currDroppableId,
+    state.currentlyRefreshing,
+    state.addAssignee,
+    state.deleteAssignee,
+  ]);
   const isSelected =
-    (provided &&
-      droppableId === currDroppableId &&
-      selectedAssignees.has(index)) ??
-    true; // instead, use this to cover cases such as "What if the user clicks outside?"
+    droppableId === currDroppableId && selectedAssignees.has(index); // instead, use this to cover cases such as "What if the user clicks outside?"
 
   useEffect(() => {
     if (!provided) return;
@@ -65,16 +68,13 @@ export function AssigneeRow({
 
   return (
     <li
+      id={`checkbox-assigneeList-${index}`}
       ref={provided?.innerRef}
       {...provided?.dragHandleProps}
       {...provided?.draggableProps}
       className={`flex flex-row items-center justify-between mt-[7px] p-3 ${
-        !isSelected ? "bg-white" : "bg-gray-200"
+        !(isSelected ?? toggled) ? "bg-white" : "bg-gray-200"
       } rounded-lg shadow overflow-x-auto`}
-      onClick={(e) => {
-        if (e.button !== 0) return;
-        setToggled(!toggled);
-      }}
     >
       <div className="flex flex-row w-full items-center">
         <div className="avatar mr-[10px]">
@@ -89,27 +89,61 @@ export function AssigneeRow({
           {isValidEmail && <p>{assignee.email}</p>}
           {!isValidEmail && (
             <div className="max-w-[70ch]">
-              <p>There was an error finding the email. Try refreshing.</p>
-              <p className="italic">
-                <b>
-                  You can still put {assignee.firstName} {assignee.lastName} into
-                  subgroups.{" "}
-                </b>
-                However, their email will be replaced by their Google Classroom ID
-                ({assignee.id}) upon exporting.
-              </p>
+              <p>There was an error obtaining the email. Try refreshing.</p>
               <details className="italic hover:cursor-pointer my-2 mx-1 p-2 bg-red-100 border border-red-300 rounded-sm">
-                <summary>What is the error?</summary>
-                <p>
-                  {(assignee.email && assignee.email !== "") ??
-                    "An unknown bug occured. Please contact support if it persists after refreshing."}
-                </p>
+                <summary>What is the error and what does it mean?</summary>
+                <div>
+                  <p>
+                    Error Code:{" "} 
+                    {assignee.email && assignee.email.trim() !== ""
+                      ? assignee.email
+                      : "An unknown bug occured. Please contact support if it persists after refreshing."}
+                  </p>
+                  <p className="not-italic pt-3">
+                    <b>
+                      You can still put {assignee.firstName} {assignee.lastName}{" "}
+                      into subgroups.{" "}
+                    </b>
+                    However, their email will be replaced by their Google
+                    Classroom ID ({assignee.id}) upon exporting.
+                  </p>
+                </div>
               </details>
             </div>
           )}
         </div>
       </div>
-        <input type="checkbox" className="checkbox" checked={isSelected} />
+      <input
+        type="checkbox"
+        className="checkbox mr-2"
+        disabled={currentlyRefreshing}
+        checked={!currentlyRefreshing ? isSelected ?? toggled : false}
+        onClick={(e) => {
+          if (e.button !== 0) return;
+          setToggled(!toggled);
+        }}
+        onKeyDown={(e) => {
+          switch (e.key) {
+            case "Enter":
+              e.preventDefault();
+              setToggled(!toggled);
+              break;
+            case "ArrowDown":
+            case "ArrowUp":
+              e.preventDefault();
+
+              const newIndex = e.key === "ArrowDown" ? index - 1 : index + 1;
+              const nextCheckboxRef = document.getElementById(
+                `checkbox-assigneeList-${newIndex}`
+              ) as HTMLInputElement | null;
+              if (nextCheckboxRef) {
+                nextCheckboxRef.focus();
+              } else {
+              }
+              break;
+          }
+        }}
+      />
     </li>
   );
 }

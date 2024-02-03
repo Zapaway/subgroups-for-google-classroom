@@ -12,7 +12,7 @@ export type GoogleClassroomAssigneeInfo = {
 };
 
 // for clicking
-export const DROPDOWN_ANIMATION_DURATION_MS = 500 as const;
+export const DROPDOWN_ANIMATION_DURATION_MS = 10001 as const;
 function simulateClickOn(element: HTMLElement) {
   element.dispatchEvent(
     new MouseEvent("mousedown", {
