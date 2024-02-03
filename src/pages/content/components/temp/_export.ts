@@ -7,7 +7,7 @@ import {
   GoogleClassroomAssigneeInfo,
 } from "../../../../gc-assignees";
 import { connectToDb, getAssignee } from "../../../../gc-idb";
-import { GoogleClassroomTempSubgroupInfo } from "./stores";
+import { GoogleClassroomTempSubgroupInfo } from "./_stores";
 
 interface IAssigneeMapping {
   [id: string]: Omit<GoogleClassroomAssigneeInfo, "pfpUrl" | "id">;

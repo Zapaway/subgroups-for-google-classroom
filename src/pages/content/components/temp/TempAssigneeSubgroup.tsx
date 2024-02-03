@@ -1,7 +1,7 @@
 import { usePageInfoStore } from "../../../../gc-hooks";
 import type { GoogleClassroomAssigneeInfo } from "../../../../gc-assignees";
 import { useEffect, useRef, useState } from "react";
-import { useTempSubgroupsStore } from "./stores";
+import { useTempSubgroupsStore } from "./_stores";
 import { connectToDb, getAssignee } from "../../../../gc-idb";
 import { Draggable, Droppable } from "react-beautiful-dnd";
 import { AssigneeRow } from "../AssigneeRow";
@@ -71,6 +71,13 @@ export default function TempAssigneeSubgroup({
     // make sure name is not taken and not empty
     if (!newTempName || newTempName === "") {
       setErrorMessage("Please provide a subgroup name.");
+      subgroupNameTextInputRef.current?.focus();
+      return;
+    }
+
+    // cannot risk duplicate droppable ids
+    if (newTempName.trim().toLowerCase() === "assigneelist") {
+      setErrorMessage("You cannot use this name. Use a different one.");
       subgroupNameTextInputRef.current?.focus();
       return;
     }
@@ -299,7 +306,7 @@ export default function TempAssigneeSubgroup({
             {...provided.dragHandleProps}
             ref={provided.innerRef}
           >
-            <AssigneeRow assignee={assignees[rubric.source.index]} />
+            <AssigneeRow assignee={assignees[rubric.source.index]} index={rubric.source.index} droppableId={tempSubgroupId}/>
           </div>
         )}
       >
@@ -325,7 +332,7 @@ export default function TempAssigneeSubgroup({
                     return (
                       <Draggable key={newId} draggableId={newId} index={index}>
                         {(provided, snapshot) => (
-                          <AssigneeRow assignee={a} provided={provided} />
+                          <AssigneeRow assignee={a} index={index} droppableId={tempSubgroupId} provided={provided} />
                         )}
                       </Draggable>
                     );

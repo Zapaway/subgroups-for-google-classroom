@@ -121,7 +121,7 @@ const OPTIONS_DROPDOWN_DOESNT_EXIST = DROPDOWN_ERROR(2);
 const OPTIONS_DROPDOWN_EMAIL_DOESNT_EXIST = DROPDOWN_ERROR(3);
 
 export async function updateAssigneesWithEmailFromPeoplesTab(
-  assigneesMap: Map<string, GoogleClassroomAssigneeInfo>
+  assigneesToUpdateMap: Map<string, GoogleClassroomAssigneeInfo>
 ) {
   const assigneeRows = getAssigneeHTMLRows();
   const res: GoogleClassroomAssigneeInfo[] = [];
@@ -132,7 +132,7 @@ export async function updateAssigneesWithEmailFromPeoplesTab(
 
   for (const row of assigneeRows) {
     const id = row.getAttribute("data-current-student-id")!;
-    const assignee = assigneesMap.get(id);
+    const assignee = assigneesToUpdateMap.get(id);
     if (!assignee) continue; // skip over assignees we dont need to get email for
 
     // now simulate a click on the options and get the email

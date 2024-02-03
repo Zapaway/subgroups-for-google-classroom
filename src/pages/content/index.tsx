@@ -8,7 +8,7 @@ import { usePageInfoStore, useUserTypeStore } from "../../gc-hooks";
 import { GoogleClassroomState, isUserATeacher } from "../../gc-page-info";
 import SubgroupsDropdown from "./SubgroupsDropdown";
 import DonateButton from "./DonateButton";
-import ImportTempSubgroupsModal from "./components/temp-subgroup/ImportTempSubgroupsModal";
+import ImportTempSubgroupsModal from "./components/temp/ImportTempSubgroupsModal";
 
 /// --- SUBGROUPS BUTTON --- ///
 // prepend React div to the right side of the navbar
@@ -69,8 +69,8 @@ const modalDetectorObserver = new MutationObserver((muts, observer) => {
 
         // this covers a case in which the teacher is on the "Stream"
         // tab and while the announcement is being created,
-        // the teacher decides to edit another announcement/material that
-        // opens up a modal
+        // the teacher decides to leave "Stream" and edit another announcement/material that
+        // opens up a different modal
         if (!isAnnouncementBeingCreated) {
           assigneeDropdownCheckboxObserver.disconnect();
         }
@@ -102,7 +102,7 @@ const createAnnouncementDivObserver = new MutationObserver((muts, observer) => {
   }
 });
 
-// detect if the assignee dropdown checkbox list is open (can be in a modal or on stream)
+// detect if the assignee dropdown checkbox list is open (can be in an assignment/etc. modal or on stream)
 let assigneeDropdownCheckbox: HTMLDivElement | null = null;
 const assigneeDropdownCheckboxConfig = { childList: true, subtree: true };
 const assigneeDropdownCheckboxObserver = new MutationObserver(
@@ -244,6 +244,8 @@ const docObserver = new MutationObserver((muts, observer) => {
         assigneeDropdownCheckboxObserver.disconnect();
       }
     }
+
+    // TODO add checkbox on assignment, etc. modal that auto create assignments based on subgroups checked
 
     // set the create announcement div and observer ONCE
     if (createAnnouncementDiv === null) {

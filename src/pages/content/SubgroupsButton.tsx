@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./index.css";
 import { useGoogleClassroomNameStore } from "../../gc-hooks";
 import { getClassroomName } from "../../gc-page-info";
+import { useMultiDragAssigneesStore } from "./components/_stores";
 
 // allow ID-based reference to modal w/o having to execute a function
 declare const window: Window &
@@ -28,11 +29,14 @@ export default function SubgroupsButton() {
     (state) => state.changeClassroomName
   );
 
+  const resetMultiDrag = useMultiDragAssigneesStore(state => state.reset);
+
   return (
       <button
         className="btn font-gc-font mr-5 text-[#646464]"
         onClick={() => {
           changeClassroomName(getClassroomName());
+          resetMultiDrag();
           window.subgroups_modal.showModal();
         }}
       >

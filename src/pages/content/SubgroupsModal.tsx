@@ -20,12 +20,13 @@ import {
 } from "../../gc-idb";
 import { AssigneeListScrollbox } from "./components/AssigneeListScrollbox";
 import { DragDropContext } from "react-beautiful-dnd";
-import TempAssigneeSubgroupScrollbox from "./components/temp-subgroup/TempAssigneeSubgroupScrollbox";
+import TempAssigneeSubgroupScrollbox from "./components/temp/TempAssigneeSubgroupScrollbox";
 import { useRef, useState } from "react";
 import {
   TempSubgroupMap,
   useTempSubgroupsStore,
-} from "./components/temp-subgroup/stores";
+} from "./components/temp/_stores";
+import { useMultiDragAssigneesStore } from "./components/_stores";
 
 export default function SubgroupsModal() {
   // info
@@ -52,9 +53,9 @@ export default function SubgroupsModal() {
   const invalidateAssigneeList = useAssigneeListStore(
     (state) => state.invalidateAssigneeList
   );
-  const [deleteAssgineeFromAllTempSubgroups, isDoneInitLoading] =
+  const [deleteAssigneeFromAllTempSubgroups, isDoneInitLoading] =
     useTempSubgroupsStore((state) => [
-      state.deleteAssgineeFromAllTempSubgroups,
+      state.deleteAssigneeFromAllTempSubgroups,
       state.doneInitLoading,
     ]);
 
@@ -80,9 +81,8 @@ export default function SubgroupsModal() {
       onDragEnd={(res, provided) => {
         const { destination, source, draggableId } = res;
         const { tempSubgroups } = useTempSubgroupsStore.getState();
-
+      
         if (!destination) return;
-        if (destination.droppableId === source.droppableId) return;
 
         const removeFromSource = () => {
           const removedAssigneeIndex = source.index;
@@ -101,7 +101,7 @@ export default function SubgroupsModal() {
             tempAssigneeIds: [...srcSubgroupAssigneeIds],
           });
         };
-        const addToDestination = () => {
+        const addToDestination = (isInSameSubgroup: boolean = false) => {
           const destSubgroupId = destination.droppableId;
           const destSubgroupInfo = tempSubgroups.get(destSubgroupId)!;
           const destSubgroupStore = destSubgroupInfo.tempStore;
@@ -112,7 +112,7 @@ export default function SubgroupsModal() {
           const newAssigneeId = draggableId.split("-").at(-1)!;
 
           // ensure that there aren't duplicates
-          if (destSubgroupAssigneeIds.includes(newAssigneeId)) {
+          if (!isInSameSubgroup && destSubgroupAssigneeIds.includes(newAssigneeId)) {
             destSubgroupStore.setState({
               errorMessage: "Assignee already exists in subgroup.",
             });
@@ -128,8 +128,26 @@ export default function SubgroupsModal() {
             tempAssigneeIds: [...destSubgroupAssigneeIds],
           });
 
+          console.log(destSubgroupStore.getState().tempAssigneeIds);
+
           return true;
         };
+
+        if (destination.droppableId === source.droppableId) {
+          if (destination.droppableId === "assigneeList") return;
+
+          // allow reordering in subgroups
+          const { deleteAssignee } = useMultiDragAssigneesStore.getState();  
+          
+          removeFromSource();
+          const removedAssigneeIndex = source.index;
+
+          // if it was selected beforehand, deselect them upon rearragement
+          deleteAssignee(removedAssigneeIndex, destination.droppableId); 
+
+          addToDestination(true);
+          return;
+        }
 
         // user picked up assignee from the entire list and dropped it onto a temp subgroup
         if (source.droppableId === "assigneeList") {
@@ -149,6 +167,7 @@ export default function SubgroupsModal() {
           // if the destination already has the same assignee, then don't do anything
         }
       }}
+      
     >
       <dialog
         id="subgroups_modal"
@@ -167,7 +186,7 @@ export default function SubgroupsModal() {
           {isTeacher ? (
             <>
               {
-                // only show subgroups on individual GC pages pageType ===
+                // only show subgroups on individual GC pages
                 pageType === GoogleClassroomState.HOME ? (
                   <>
                     <p className="text-base mb-3">
@@ -223,7 +242,7 @@ export default function SubgroupsModal() {
                         className="link"
                         target="_blank"
                         rel="noreferrer noopener"
-                        href="https://chrome.google.com/webstore/detail/subgroups-for-google-clas/liihdnckdcohbeincekdciebinhmpfab"
+                        href="https://chromewebstore.google.com/detail/subgroups-for-google-clas/liihdnckdcohbeincekdciebinhmpfab"
                       >
                         "Support" section in the Chrome Extension store 🏪
                       </a>
@@ -351,7 +370,7 @@ export default function SubgroupsModal() {
                                 async ({ id, firstName, lastName }) => {
                                   if (!parsedAssigneesIds.has(id)) {
                                     await deleteAssignee(db, id);
-                                    deleteAssgineeFromAllTempSubgroups(id);
+                                    deleteAssigneeFromAllTempSubgroups(id);
                                   } else {
                                     const {
                                       firstName: newFirstName,
@@ -385,7 +404,7 @@ export default function SubgroupsModal() {
 
                             // --- EXISTING ASSIGNEES
                             // will need to transfer emails from oldAssignees to newAssignees
-                            // NOTE: existing assignee with invalid email will count as one without email
+                            // NOTE: existing assignee with invalid email will count as one without email (see below)
                             // NOTE: emails cannot change
                             const newAssigneesWithoutEmail: Map<
                               string,
@@ -423,7 +442,7 @@ export default function SubgroupsModal() {
                                     10
                                 ) / 10; // rounded to nearest tenth
                               setDisabledMessage(
-                                `You have ${numOfNewAssignees} student(s), so it should take about ${estSeconds} seconds.`
+                                `You have ${numOfNewAssignees} new student(s), so it should take about ${estSeconds} seconds.`
                               );
                             }
                             const newAssginees =

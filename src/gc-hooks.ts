@@ -10,7 +10,7 @@ interface IPageInfoStoreState extends IPageInfo {
 export const usePageInfoStore = create<IPageInfoStoreState>((set) => ({
   pageType: GoogleClassroomState.HOME,
   classroomId: "",
-  isTeacher: false,
+  // isTeacher: false,  // instead, use `useSubgroupListStore()`
   checkPageType: (url) => set({ ...getPageInfo(url) }),
 }));
 
@@ -40,6 +40,16 @@ export const useAssigneeListStore = create<IAssigneeListStoreState>((set) => ({
     set({ assigneeList: newAssigneeList }),
 }));
 
+interface IUserTypeStoreState {
+  isTeacher: boolean;
+  setIsTeacher: (isTeacher: boolean) => void;
+}
+
+export const useUserTypeStore = create<IUserTypeStoreState>((set) => ({
+  isTeacher: false,
+  setIsTeacher: (isTeacher) => set({ isTeacher }),
+}));
+
 interface ISubgroupListStoreState {
   subgroupList: GoogleClassroomSubgroupInfo[];
 }
@@ -49,18 +59,8 @@ interface ISubgroupListStoreState {
  *
  * NOTE: This is automatically updated by `loadSubgroups()` of `useTempSubgroupsStore()`
  * in `pages/content/components/temp-subgroup/stores.ts` as the modal button
- * is always in the HTMl and automatically updates subgroups if classroomID or DB changes.
+ * is always in the HTML and automatically updates subgroups if classroomID or DB changes.
  */
 export const useSubgroupListStore = create<ISubgroupListStoreState>((set) => ({
   subgroupList: [],
-}));
-
-interface IUserTypeStoreState {
-  isTeacher: boolean;
-  setIsTeacher: (isTeacher: boolean) => void;
-}
-
-export const useUserTypeStore = create<IUserTypeStoreState>((set) => ({
-  isTeacher: false,
-  setIsTeacher: (isTeacher) => set({ isTeacher }),
 }));

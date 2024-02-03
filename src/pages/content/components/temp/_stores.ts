@@ -40,24 +40,17 @@ export function didDbNameChange({
   return !(subgroupName === tempStore.getState().tempSubgroupName);
 }
 
+/**
+ * Check to see if the temp assignee list changed. This includes order.
+ */
 export function didTempAssigneesChange({
   assigneeIds,
   tempStore,
 }: GoogleClassroomTempSubgroupInfo) {
   const tempAssigneeIds = tempStore.getState().tempAssigneeIds;
 
-  const dbAssigneeIdsSet = new Set(assigneeIds);
-  const tempAssigneeIdsSet = new Set(tempAssigneeIds);
-
-  const dbMinusTemp = new Set(
-    [...dbAssigneeIdsSet].filter((a) => !tempAssigneeIdsSet.has(a))
-  );
-  const tempMinusDb = new Set(
-    [...tempAssigneeIdsSet].filter((a) => !dbAssigneeIdsSet.has(a))
-  );
-
   // check if there are any differences
-  return !!dbMinusTemp.size || !!tempMinusDb.size;
+  return JSON.stringify(assigneeIds) !== JSON.stringify(tempAssigneeIds);
 }
 
 interface INewTempSubgroupsStoreState {
@@ -74,7 +67,7 @@ interface INewTempSubgroupsStoreState {
 
   setDoneInitLoading: (doneInitLoading: boolean) => void;
   refreshTempSubgroups: () => void;
-  deleteAssgineeFromAllTempSubgroups: (assigneeId: string) => void;
+  deleteAssigneeFromAllTempSubgroups: (assigneeId: string) => void;
   getTempSubgroup: (tempSubgroupId: string) => GoogleClassroomTempSubgroupInfo;
   getAllTempSubgroupsBasedOn: (
     assigneeId: string
@@ -100,9 +93,8 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
     doneInitLoading: false,
 
     loadSubgroups: (subgroups) => {
-      const oldSubgroupIds = Array.from(get().tempSubgroups.keys());
-      oldSubgroupIds.map((id) => get().delTempSubgroup(id));
-
+      get().delAllTempSubgroups();
+      
       // also update subgroup store for dropdown
       useSubgroupListStore.setState({
         subgroupList: [...subgroups],
@@ -110,7 +102,10 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
 
       for (const sg of subgroups) {
         const tempId = sg.subgroupName;
+        console.log(`orignial ${tempId}`, sg.assigneeIds);
         const tempStore = createTempSubgroupStore(sg, sg.subgroupName);
+
+        console.log(tempId, tempStore.getState().tempAssigneeIds);
 
         get().tempSubgroups.set(tempId, { ...sg, tempStore, existsInDb: true });
       }
@@ -119,7 +114,7 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
     refreshTempSubgroups: () => {
       set({ tempSubgroups: new Map(get().tempSubgroups) });
     },
-    deleteAssgineeFromAllTempSubgroups: (assigneeId) => {
+    deleteAssigneeFromAllTempSubgroups: (assigneeId) => {
       for (const [tempId, tempInfo] of get().tempSubgroups) {
         const newDbAssigneeIds = tempInfo.assigneeIds.filter(
           (id) => id !== assigneeId
@@ -153,12 +148,11 @@ export const useTempSubgroupsStore = create<INewTempSubgroupsStoreState>(
       const currTempSubgroups = get().tempSubgroups;
       let genericTempIdNum = 1;
       let genericTempId = "";
-      let isGenericTempIdTaken = true;
 
       const existingTempIds = Array.from(currTempSubgroups.keys());
 
       // will run at least once
-      while (isGenericTempIdTaken) {
+      while (true) {
         genericTempId = `Subgroup ${genericTempIdNum}`;
 
         // if already taken, increment number and repeat

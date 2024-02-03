@@ -6,7 +6,7 @@ import {
   attemptAutoSelectSubgroupsHeader,
   parseCSVContents,
   verifyIdentifierAndSubgroupsColumnDataFormat,
-} from "./import";
+} from "./_import";
 import { create } from "zustand";
 import {
   GoogleClassroomSubgroupInfo,
@@ -22,7 +22,7 @@ import {
   GoogleClassroomAssigneeInfo,
 } from "../../../../gc-assignees";
 import ImportedSubgroupInfo from "./ImportedSubgroupInfo";
-import { useTempSubgroupsStore } from "./stores";
+import { useTempSubgroupsStore } from "./_stores";
 
 // inspiration from https://stackoverflow.com/questions/76400460/html-dialog-closes-automatically-when-file-input-is-cancelled-how-to-prevent
 let prematurelyClosed = false;

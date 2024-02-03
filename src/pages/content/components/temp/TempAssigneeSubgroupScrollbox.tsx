@@ -15,9 +15,9 @@ import {
   didDbNameChange,
   didTempAssigneesChange,
   useTempSubgroupsStore,
-} from "./stores";
-import { generateTempSubgroupsCSVUrl } from "./export";
-import { type RequestOptions } from "../../../../pages/background";
+} from "./_stores";
+import { generateTempSubgroupsCSVUrl } from "./_export";
+import { type RequestOptions } from "../../../background";
 
 // allow ID-based reference to modal w/o having to execute a function
 declare const window: Window &
@@ -191,18 +191,20 @@ export default function TempAssigneeSubgroupScrollbox({
           // changes are made to existing db subgroup
           else {
             newSubgroupInfo = tempInfo;
+            console.log("temp", tempInfo);
 
             if (didDbNameChange(tempInfo)) {
               // make the tempSubgroupName permanent
               newSubgroupInfo = {
-                ...tempInfo,
+                ...newSubgroupInfo,
                 subgroupName: tempSubgroupName,
               };
             }
             if (didTempAssigneesChange(tempInfo)) {
+              console.log("CHANGEDDDD");
               // make the tempAssigneesIds permanent
               newSubgroupInfo = {
-                ...tempInfo,
+                ...newSubgroupInfo,
                 assigneeIds: [...tempAssigneeIds],
               };
             }
@@ -212,6 +214,7 @@ export default function TempAssigneeSubgroupScrollbox({
             //    then update existing subgroup
             // if subgroupName changed (doesn't matter if assignee was changed or not),
             //    then add new subgroup w/ updated info
+            console.log("assignees", tempAssigneeIds);
             await updateSubgroup(db, {
               subgroupName: tempSubgroupName,
               assigneeIds: tempAssigneeIds,
@@ -235,8 +238,10 @@ export default function TempAssigneeSubgroupScrollbox({
           await deleteSubgroup(db, oldName);
         }
 
+        console.log("new (before)", newSubgroups);
         // update temp subgroup (w/o making call from db)
         loadSubgroups(newSubgroups);
+        console.log("new (after load)", newSubgroups);
       };
     }
   }, [saveButtonRef]);

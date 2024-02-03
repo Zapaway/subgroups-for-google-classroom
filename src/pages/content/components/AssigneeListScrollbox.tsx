@@ -54,7 +54,7 @@ export function AssigneeListScrollbox() {
             {...provided.dragHandleProps}
             ref={provided.innerRef}
           >
-            <AssigneeRow assignee={assigneeList[rubric.source.index]} />
+            <AssigneeRow assignee={assigneeList[rubric.source.index]} index={rubric.source.index} droppableId="assigneeList" />
           </div>
         )}
       >
@@ -63,7 +63,7 @@ export function AssigneeListScrollbox() {
             {assigneeList.map((a, index) => (
               <Draggable key={a.id} draggableId={a.id} index={index}>
                 {(provided, snapshot) => (
-                  <AssigneeRow assignee={a} provided={provided} />
+                  <AssigneeRow assignee={a} index={index} droppableId="assigneeList" provided={provided}/>
                 )}
               </Draggable>
             ))}
